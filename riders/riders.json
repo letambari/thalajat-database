@@ -1,0 +1,99 @@
+[{
+  "_id": {
+    "$oid": "643584d35924ce22c80009f9"
+  },
+  "rider_id": 12345,
+  "first_name": "John",
+  "last_name": "Doe",
+  "email": "johndoe@email.com",
+  "phone_number": "555-123-4567",
+  "vehicle_type": "bike",
+  "vehicle_registration": "ABC-123",
+  "license_number": "123456789",
+  "availability_status": true,
+  "current_location": {
+    "latitude": 37.7749,
+    "longitude": -122.4194
+  },
+  "start_date": "2022-01-01",
+  "end_date": null,
+  "total_deliveries": 50,
+  "performance_rating": 4.8,
+  "last_activity": "2023-04-03 15:30:00",
+  "emergency_contact": {
+    "name": "Jane Doe",
+    "phone_number": "555-987-6543",
+    "relationship": "Spouse"
+  },
+  "insurance": {
+    "provider": "Geico",
+    "policy_number": "1234567890",
+    "expiration_date": "2022-12-31"
+  },
+  "training_completion_date": "2022-02-01",
+  "background_check": {
+    "status": "Completed",
+    "date": "2022-01-15"
+  },
+  "preferred_working_hours": "9am - 5pm",
+  "delivery_zones": [
+    "Zone A",
+    "Zone B"
+  ],
+  "equipment": [
+    "Helmet",
+    "Delivery bag"
+  ],
+  "language_skills": [
+    "English",
+    "Spanish"
+  ],
+  "notes": "Has exceptional customer service skills.",
+  "hourly_rate": 15,
+  "commission_rate": 0.25,
+  "total_earnings": 1250,
+  "average_delivery_time": "30 minutes",
+  "on_time_delivery_rate": "90%",
+  "late_delivery_count": 5,
+  "customer_rating_average": 4.5,
+  "customer_compliments": 10,
+  "customer_complaints": 2,
+  "uniform_size": "Medium",
+  "bank_name": "Chase Bank",
+  "bank_account_number": "1234567890",
+  "bank_routing_number": "111000614",
+  "tax_id": "123-45-6789",
+  "work_status": "Citizen",
+  "contract_type": "Full-time",
+  "contract_start_date": "2022-03-01",
+  "contract_end_date": "2022-09-01",
+  "probation_period_end_date": "2022-04-01",
+  "days_off": [
+    "Saturday",
+    "Sunday"
+  ],
+  "vacation_days_used": 2,
+  "vacation_days_remaining": 8,
+  "sick_days_used": 1,
+  "sick_days_remaining": 4,
+  "overtime_hours": 10,
+  "bonus_earned": 50,
+  "warnings_received": 0,
+  "last_warning_date": null,
+  "termination_reason": null,
+  "reference_check_status": "completed",
+  "medical_certificate_status": "valid",
+  "medical_certificate_expiration_date": "2023-02-01",
+  "health_conditions": "Allergic to peanuts",
+  "emergency_procedures": "Epinephrine auto-injector on hand",
+  "preferred_communication_method": "Phone",
+  "scheduling_preferences": "Available to work any shift",
+  "performance_review_date": "2022-09-01",
+  "performance_review_notes": "Exceeds expectations in customer service.",
+  "recognition_awards": [
+    "Employee of the Month"
+  ],
+  "skills_and_certifications": [
+    "Drivers License"
+  ]
+}]

@@ -1,0 +1,29 @@
+[{
+  "_id": {
+    "$oid": "643586cd5924ce22c80009fa"
+  },
+  "promotion_id": 1234,
+  "promotion_name": "Spring Sale",
+  "promotion_type": "percentage",
+  "discount_value": 15,
+  "start_date": "2023-04-01",
+  "end_date": "2023-04-30",
+  "min_purchase_amount": 50,
+  "max_discount_amount": 20,
+  "eligible_products": [
+    234,
+    567,
+    890
+  ],
+  "excluded_products": [
+    345
+  ],
+  "customer_segment": "new_customers",
+  "promotion_channel": "email",
+  "coupon_code": "SPRING15",
+  "redemption_limit": 1000,
+  "redemption_count": 250,
+  "status": "active",
+  "created_at": "2023-03-25 10:00:00",
+  "updated_at": "2023-03-31 16:30:00"
+}]

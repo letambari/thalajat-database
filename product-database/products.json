@@ -1,0 +1,63 @@
+[{
+  "_id": {
+    "$oid": "643576f05924ce22c80009f6"
+  },
+  "product_id": 1234,
+  "product_name": "Organic Avocado",
+  "product_description": "Fresh, ripe avocados picked from organic farms",
+  "product_image": "https://example.com/images/organic_avocado.jpg",
+  "category_id": 5,
+  "brand_id": 12,
+  "price": 2.99,
+  "weight_or_volume": "1 lb",
+  "unit_of_measure": "pounds",
+  "shelf_life": 7,
+  "barcode": "012345678912",
+  "is_active": true,
+  "creation_date": "2022-03-15",
+  "last_update": "2022-03-20",
+  "sku": "ORG-AV-001",
+  "nutrition_info": {
+    "calories": 160,
+    "fat": 15,
+    "protein": 2,
+    "carbohydrates": 9,
+    "fiber": 7
+  },
+  "ingredients": [
+    "organic avocado"
+  ],
+  "allergens": [
+    "none"
+  ],
+  "storage_instructions": "Store at room temperature until ripe, then refrigerate",
+  "expiration_date": "2022-03-30",
+  "origin": "Mexico",
+  "is_vegan": true,
+  "is_gluten_free": true,
+  "is_organic": true,
+  "manufacturer": "Organic Farms Inc.",
+  "supplier_id": 23,
+  "wholesale_price": 1.99,
+  "tax_rate": 0.06,
+  "discount": 0.1,
+  "is_halal": false,
+  "is_kosher": true,
+  "package_type": "plastic",
+  "package_size": {
+    "length": 5,
+    "width": 3,
+    "height": 2
+  },
+  "featured": false,
+  "eco_friendly": true,
+  "certifications": [
+    "Organic",
+    "Non-GMO",
+    "Fair Trade"
+  ],
+  "additional_notes": "Avocados may vary in size and ripeness",
+  "Product_weight_warehouse_1": 30.5,
+  "Product_weight_warehouse_2": 25.2,
+  "Product_weight_warehouse_3": 28.7
+}]
