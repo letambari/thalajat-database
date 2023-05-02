@@ -1,9 +1,9 @@
 <?php
 
 $curl = curl_init();
-$id = '642ce137904f2d2681012838';
+$id = '6451257404d858a20405d604';
 curl_setopt_array($curl, array(
-  CURLOPT_URL => 'http://localhost/thalajat-database/user-database/api_key/get_all_users_api_key.php',
+  CURLOPT_URL => 'http://localhost/mongo-site/recipe/api_key/get_single_users_with_api_key.php?id='.$id.'',
   CURLOPT_RETURNTRANSFER => true,
   CURLOPT_ENCODING => '',
   CURLOPT_MAXREDIRS => 10,
