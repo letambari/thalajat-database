@@ -43,29 +43,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'DELETE') {
   
   // Get ID from URL parameter
   if(!isset($_GET['id'])){
-    echo "data did not come";
+    header("HTTP/1.1 400 Bad Request");
+    echo json_encode(array("message" => "Missing ID parameter."));
     exit();
   }
- 
-  $id = $_GET['id'];
+  
+  // Validate and sanitize ID parameter
+  $id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_STRING);
+  if (!preg_match('/^[a-f\d]{24}$/i', $id)) {
+    header("HTTP/1.1 400 Bad Request");
+    echo json_encode(array("message" => "Invalid ID parameter."));
+    exit();
+  }
   
   // Construct filter
   $filter = ['_id' => new MongoDB\BSON\ObjectID($id)];
   
   // Delete document from collection
   $result = $collection->deleteOne($filter);
-
-
-//   $success_status = $result->getDeletedCount();
-//  echo $nice = json_encode($success_status);
-
-//  if($nice == 1){
-//     echo "ID is deleted";
-//  } else {
-//     echo "not deleted";
-//  }
-// //echo $success_status;
-//    exit();
+  
   // Check if delete was successful
   if ($result->getDeletedCount() === 1) {
 

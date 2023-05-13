@@ -39,6 +39,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Get the data from the request body
     $data = json_decode(file_get_contents('php://input'), true);
 
+    // Validate the email field using regular expression
+    $email_regex = "/^\S+@\S+\.\S+$/";
+    if (!preg_match($email_regex, $data['email'])) {
+        // Return error for invalid email format
+        header('HTTP/1.1 400 Bad Request');
+        header('Content-Type: application/json');
+        echo json_encode(array('error' => 'Invalid email format'));
+        exit();
+    }
+
+    // Sanitize and validate the name field
+    $name = filter_var($data['name'], FILTER_SANITIZE_STRING);
+    if (!$name || strlen($name) > 100) {
+        // Return error for invalid name field
+        header('HTTP/1.1 400 Bad Request');
+        header('Content-Type: application/json');
+        echo json_encode(array('error' => 'Invalid name field'));
+        exit();
+    }
+
     // Select the database and collection to insert into
     $db = $mongoClient->selectDatabase("storage_data");
     $collection = $db->selectCollection("analytics");

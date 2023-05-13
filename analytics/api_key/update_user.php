@@ -43,42 +43,50 @@ $collection = $mongo->storage_data->analytics;
 // Check if request method is PATCH
 if ($_SERVER['REQUEST_METHOD'] == 'PATCH') {
   
-  // Get ID from URL parameter
-  if(!isset($_GET['id'])){
+  // Sanitize and validate ID parameter
+$id = filter_var($_GET['id'], FILTER_SANITIZE_STRING);
+if(!preg_match('/^[a-f\d]{24}$/i', $id)){
     http_response_code(400); // Set response status code to 400 Bad Request
-    echo json_encode(array("message" => "Missing ID parameter."));
+    echo json_encode(array("message" => "Invalid ID parameter."));
     exit();
-  }
-  
-  $id = $_GET['id'];
-  
-  // Construct filter
-  $filter = ['_id' => new MongoDB\BSON\ObjectId($id)];
-  
-  // Decode PATCH data from request body
-  $data = json_decode(file_get_contents('php://input'), true);
-  
-  // Construct update document from PATCH data
-  $update = ['$set' => $data];
-  
-  // Update document in collection
-  $result = $collection->updateOne($filter, $update);
-  
-  // Check if update was successful
-  if ($result->getModifiedCount() === 1) {
+}
+
+// Construct filter
+$filter = ['_id' => new MongoDB\BSON\ObjectId($id)];
+
+// Decode PATCH data from request body
+$data = json_decode(file_get_contents('php://input'), true);
+
+// Validate PATCH data
+if(empty($data)){
+    http_response_code(400); // Set response status code to 400 Bad Request
+    echo json_encode(array("message" => "Missing PATCH data."));
+    exit();
+}
+
+// Sanitize PATCH data
+foreach ($data as $key => $value) {
+    $data[$key] = filter_var($value, FILTER_SANITIZE_STRING);
+}
+
+// Construct update document from PATCH data
+$update = ['$set' => $data];
+
+// Update document in collection
+$result = $collection->updateOne($filter, $update);
+
+// Check if update was successful
+if ($result->getModifiedCount() === 1) {
     // Return success message with updated document
     $updatedDocument = $collection->findOne($filter);
     http_response_code(200); // Set response status code to 200 OK
     echo json_encode($updatedDocument);
-  } else {
+} else {
     // Return error message
     http_response_code(404); // Set response status code to 404 Not Found
     echo json_encode(array("message" => "Document not found."));
-  }
-} else {
-  // Return error message for unsupported method
-  http_response_code(405); // Set response status code to 405 Method Not Allowed
-  echo json_encode(array("message" => "Method not allowed."));
+}
+
 }
 
 ?>
