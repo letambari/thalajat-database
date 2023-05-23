@@ -40,6 +40,10 @@ if (!$document_access) {
 $mongo = new MongoDB\Client("mongodb://localhost:27017");
 $collection = $mongo->storage_data->analytics;
 
+// Check if the permission field exists and is equal to 1, 2, 3, or 4
+if (isset($document_access['permission']) && ($document_access['permission'] === 1)) {
+    // User has full access
+  
 // Check if request method is PATCH
 if ($_SERVER['REQUEST_METHOD'] == 'PATCH') {
   
@@ -89,4 +93,11 @@ if ($result->getModifiedCount() === 1) {
 
 }
 
+} else {
+    // User does not have full access
+    header('HTTP/1.1 401 Unauthorized');
+    header('Content-Type: application/json');
+    echo json_encode(array('error' => 'Unauthorized access or invalid permission level'));
+    exit();
+  }
 ?>

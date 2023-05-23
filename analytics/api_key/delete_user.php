@@ -38,30 +38,29 @@ if (!$document_access) {
 $mongo = new MongoDB\Client("mongodb://localhost:27017");
 $collection = $mongo->storage_data->analytics;
 
+
+// Check if the permission field exists and is equal to 1
+if (isset($document_access['permission']) && $document_access['permission'] === 1 || $document_access['permission'] === 2) {
+  // User has full access
+ 
+  
 // Check if request method is DELETE
 if ($_SERVER['REQUEST_METHOD'] == 'DELETE') {
   
   // Get ID from URL parameter
   if(!isset($_GET['id'])){
-    header("HTTP/1.1 400 Bad Request");
-    echo json_encode(array("message" => "Missing ID parameter."));
+    echo "data did not come";
     exit();
   }
-  
-  // Validate and sanitize ID parameter
-  $id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_STRING);
-  if (!preg_match('/^[a-f\d]{24}$/i', $id)) {
-    header("HTTP/1.1 400 Bad Request");
-    echo json_encode(array("message" => "Invalid ID parameter."));
-    exit();
-  }
+ 
+  $id = $_GET['id'];
   
   // Construct filter
   $filter = ['_id' => new MongoDB\BSON\ObjectID($id)];
   
   // Delete document from collection
   $result = $collection->deleteOne($filter);
-  
+
   // Check if delete was successful
   if ($result->getDeletedCount() === 1) {
 
@@ -78,4 +77,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'DELETE') {
   http_response_code(405); // Set response status code to 405 Method Not Allowed
   echo json_encode(array("message" => "Method not allowed."));
 }
+
+} else {
+  // User does not have full access
+  header('HTTP/1.1 401 Unauthorized');
+  header('Content-Type: application/json');
+  echo json_encode(array('error' => 'Unauthorized access'));
+  exit();
+}
+
 ?>

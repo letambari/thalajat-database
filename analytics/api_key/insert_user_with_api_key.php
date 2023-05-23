@@ -34,6 +34,11 @@ if (!$document_access) {
     exit();
 }
 
+
+// Check if the permission field exists and is equal to 1, 2, 3, or 4
+if (isset($document_access['permission']) && ($document_access['permission'] === 1 || $document_access['permission'] === 2)) {
+    // User has full access
+
 // Define the API endpoint to insert data
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Get the data from the request body
@@ -76,4 +81,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Send the response back to the client
     echo json_encode($response);
 }
+} else {
+    // User does not have full access
+    header('HTTP/1.1 401 Unauthorized');
+    header('Content-Type: application/json');
+    echo json_encode(array('error' => 'Unauthorized access or invalid permission level'));
+    exit();
+}
+
 ?>
