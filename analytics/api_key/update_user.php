@@ -40,64 +40,67 @@ if (!$document_access) {
 $mongo = new MongoDB\Client("mongodb://localhost:27017");
 $collection = $mongo->storage_data->analytics;
 
+
 // Check if the permission field exists and is equal to 1, 2, 3, or 4
 if (isset($document_access['permission']) && ($document_access['permission'] === 1)) {
     // User has full access
-  
-// Check if request method is PATCH
-if ($_SERVER['REQUEST_METHOD'] == 'PATCH') {
-  
-  // Sanitize and validate ID parameter
-$id = filter_var($_GET['id'], FILTER_SANITIZE_STRING);
-if(!preg_match('/^[a-f\d]{24}$/i', $id)){
-    http_response_code(400); // Set response status code to 400 Bad Request
-    echo json_encode(array("message" => "Invalid ID parameter."));
-    exit();
-}
 
-// Construct filter
-$filter = ['_id' => new MongoDB\BSON\ObjectId($id)];
+    // Check if request method is PATCH
+    if ($_SERVER['REQUEST_METHOD'] == 'PATCH') {
 
-// Decode PATCH data from request body
-$data = json_decode(file_get_contents('php://input'), true);
+        // Get ID from URL parameter
+        if (!isset($_GET['id'])) {
+            http_response_code(400); // Set response status code to 400 Bad Request
+            echo json_encode(array("message" => "Missing ID parameter."));
+            exit();
+        }
 
-// Validate PATCH data
-if(empty($data)){
-    http_response_code(400); // Set response status code to 400 Bad Request
-    echo json_encode(array("message" => "Missing PATCH data."));
-    exit();
-}
+        // Validate and sanitize the ID parameter
+        $id = $_GET['id'];
+        try {
+            $objectId = new MongoDB\BSON\ObjectId($id);
+        } catch (MongoDB\Driver\Exception\InvalidArgumentException $e) {
+            // Return error for invalid ID parameter
+            http_response_code(400); // Set response status code to 400 Bad Request
+            echo json_encode(array("message" => "Invalid ID parameter."));
+            exit();
+        }
 
-// Sanitize PATCH data
-foreach ($data as $key => $value) {
-    $data[$key] = filter_var($value, FILTER_SANITIZE_STRING);
-}
+        // Construct filter
+        $filter = ['_id' => $objectId];
 
-// Construct update document from PATCH data
-$update = ['$set' => $data];
+        // Decode PATCH data from request body
+        $data = json_decode(file_get_contents('php://input'), true);
 
-// Update document in collection
-$result = $collection->updateOne($filter, $update);
+        // Validate and sanitize the PATCH data if required
 
-// Check if update was successful
-if ($result->getModifiedCount() === 1) {
-    // Return success message with updated document
-    $updatedDocument = $collection->findOne($filter);
-    http_response_code(200); // Set response status code to 200 OK
-    echo json_encode($updatedDocument);
-} else {
-    // Return error message
-    http_response_code(404); // Set response status code to 404 Not Found
-    echo json_encode(array("message" => "Document not found."));
-}
+        // Construct update document from PATCH data
+        $update = ['$set' => $data];
 
-}
+        // Update document in collection
+        $result = $collection->updateOne($filter, $update);
 
+        // Check if update was successful
+        if ($result->getModifiedCount() === 1) {
+            // Return success message with updated document
+            $updatedDocument = $collection->findOne($filter);
+            http_response_code(200); // Set response status code to 200 OK
+            echo json_encode($updatedDocument);
+        } else {
+            // Return error message
+            http_response_code(404); // Set response status code to 404 Not Found
+            echo json_encode(array("message" => "Document not found."));
+        }
+    } else {
+        // Return error message for unsupported method
+        http_response_code(405); // Set response status code to 405 Method Not Allowed
+        echo json_encode(array("message" => "Method not allowed."));
+    }
 } else {
     // User does not have full access
     header('HTTP/1.1 401 Unauthorized');
     header('Content-Type: application/json');
     echo json_encode(array('error' => 'Unauthorized access or invalid permission level'));
     exit();
-  }
+}
 ?>

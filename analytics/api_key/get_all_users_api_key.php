@@ -33,12 +33,30 @@ if (!$access_document) {
 }
 
 // Check if the permission field exists and is equal to 1
-if (isset($access_document['permission']) && $access_document['permission'] === 1 || $access_document['permission'] === 2 || $access_document['permission'] === 3 || $access_document['permission'] === 4) {
+if (isset($access_document['permission']) && ($access_document['permission'] === 1 || $access_document['permission'] === 2 || $access_document['permission'] === 3 || $access_document['permission'] === 4)) {
     // User has full access
 
-    // Pagination variables
-    $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
-    $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 10;
+    // Validate and sanitize the page parameter
+    $page = isset($_GET['page']) ? filter_var($_GET['page'], FILTER_VALIDATE_INT) : 1;
+    if ($page === false || $page < 1) {
+        // Return error for invalid page value
+        header('HTTP/1.1 400 Bad Request');
+        header('Content-Type: application/json');
+        echo json_encode(array('error' => 'Invalid page value'));
+        exit();
+    }
+
+    // Validate and sanitize the limit parameter
+    $limit = isset($_GET['limit']) ? filter_var($_GET['limit'], FILTER_VALIDATE_INT) : 10;
+    if ($limit === false || $limit < 1) {
+        // Return error for invalid limit value
+        header('HTTP/1.1 400 Bad Request');
+        header('Content-Type: application/json');
+        echo json_encode(array('error' => 'Invalid limit value'));
+        exit();
+    }
+
+    // Calculate skip value for pagination
     $skip = ($page - 1) * $limit;
 
     // Define the API endpoint

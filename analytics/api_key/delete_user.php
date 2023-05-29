@@ -61,6 +61,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'DELETE') {
   // Delete document from collection
   $result = $collection->deleteOne($filter);
 
+
+//   $success_status = $result->getDeletedCount();
+//  echo $nice = json_encode($success_status);
+
+//  if($nice == 1){
+//     echo "ID is deleted";
+//  } else {
+//     echo "not deleted";
+//  }
+// //echo $success_status;
+//    exit();
   // Check if delete was successful
   if ($result->getDeletedCount() === 1) {
 

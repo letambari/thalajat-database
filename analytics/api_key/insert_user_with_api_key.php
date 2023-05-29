@@ -10,57 +10,316 @@ header("Access-Control-Allow-Headers: *");
 $mongoClient = new MongoDB\Client("mongodb://localhost:27017");
 
 // Select the database and collection for user access
-$db_access = $mongoClient->selectDatabase("storage_data");
-$collection_access = $db_access->selectCollection("user_access");
+$dbAccess = $mongoClient->selectDatabase("storage_data");
+$collectionAccess = $dbAccess->selectCollection("user_access");
 
 // Check for API key
-if (!isset($_SERVER['HTTP_X_API_KEY'])) {
+$apiKey = $_SERVER['HTTP_X_API_KEY'] ?? null;
+
+if (!$apiKey) {
     // Return error for missing API key
-    header('HTTP/1.1 400 Bad Request');
-    header('Content-Type: application/json');
-    echo json_encode(array('error' => 'Missing API key'));
-    exit();
+    returnError('Missing API key', 400);
 }
 
 // Find the document with the given API key
-$filter = ['api_key' => $_SERVER['HTTP_X_API_KEY']];
-$document_access = $collection_access->findOne($filter);
+$accessFilter = ['api_key' => $apiKey];
+$accessDocument = $collectionAccess->findOne($accessFilter);
 
-if (!$document_access) {
+if (!$accessDocument) {
     // Return error for unauthorized access
-    header('HTTP/1.1 401 Unauthorized');
-    header('Content-Type: application/json');
-    echo json_encode(array('error' => 'Unauthorized access'));
-    exit();
+    returnError('Unauthorized access', 401);
 }
 
+// Check if the permission field exists and is equal to 1 or 2
+$permission = $accessDocument['permission'] ?? null;
 
-// Check if the permission field exists and is equal to 1, 2, 3, or 4
-if (isset($document_access['permission']) && ($document_access['permission'] === 1 || $document_access['permission'] === 2)) {
-    // User has full access
+if (!in_array($permission, [1, 2])) {
+    // User does not have full access
+    returnError('Unauthorized access or invalid permission level', 401);
+}
 
 // Define the API endpoint to insert data
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Get the data from the request body
-    $data = json_decode(file_get_contents('php://input'), true);
+    $requestData = json_decode(file_get_contents('php://input'), true);
 
-    // Validate the email field using regular expression
-    $email_regex = "/^\S+@\S+\.\S+$/";
-    if (!preg_match($email_regex, $data['email'])) {
-        // Return error for invalid email format
-        header('HTTP/1.1 400 Bad Request');
-        header('Content-Type: application/json');
-        echo json_encode(array('error' => 'Invalid email format'));
-        exit();
-    }
+    // Validate the data
+    $validationRules = [
+        'promotion_id' => [
+            'required' => true,
+            'integer' => true,
+        ],
+        'promotion_name' => [
+            'required' => true,
+            'string' => true,
+            'max_length' => 255,
+        ],
+        'promotion_type' => [
+            'required' => true,
+            'in' => ['percentage', 'fixed'],
+            'string' => true,
+        ],
+        'discount_value' => [
+            'required' => true,
+            'numeric' => true,
+            'min' => 0,
+        ],
+        'start_date' => [
+            'required' => true,
+            'date_format' => 'Y-m-d',
+        ],
+        'end_date' => [
+            'required' => true,
+            'date_format' => 'Y-m-d',
+        ],
+        'min_purchase_amount' => [
+            'required' => true,
+            'numeric' => true,
+            'min' => 0,
+        ],
+        'max_discount_amount' => [
+            'numeric' => true,
+            'nullable' => true,
+            'min' => 0,
+        ],
+        'eligible_products' => [
+            'array' => true,
+        ],
+        'excluded_products' => [
+            'array' => true,
+        ],
+        'customer_segment' => [
+            'required' => true,
+            'in' => ['all_customers', 'high-spender', 'loyal_customer'],
+        ],
+        'promotion_channel' => [
+            'required' => true,
+            'in' => ['email', 'social_media', 'website'],
+        ],
+        'coupon_code' => [
+            'required' => true,
+            'string' => true,
+            'max_length' => 255,
+        ],
+        'redemption_limit' => [
+            'required' => true,
+            'integer' => true,
+            'min' => 0,
+        ],
+        'redemption_count' => [
+            'required' => true,
+            'integer' => true,
+            'min' => 0,
+        ],
+        'status' => [
+            'required' => true,
+            'in' => ['active', 'inactive'],
+        ],
+        'created_at' => [
+            'required' => true,
+            'date_format' => 'Y-m-d\TH:i:s\Z',
+        ],
+        'updated_at' => [
+            'required' => true,
+            'date_format' => 'Y-m-d\TH:i:s\Z',
+        ],
+        "discount_amount" => [
+            "required" => true,
+            "numeric" => true,
+        ],
+        "payment_method" => [
+            "required" => true,
+            "in" => ["credit_card", "paypal", "bank_transfer"],
+        ],
+        "shipping_method" => [
+            "required" => true,
+            "in" => ["express_shipping", "standard_shipping", "pickup"],
+        ],
+        "user_agent" => [
+            "required" => true,
+            "string" => true,
+        ],
+        "language_preference" => [
+            "required" => true,
+            "string" => true,
+        ],
+        "customer_segment" => [
+            "required" => true,
+            "in" => ["high-spender", "regular", "low-spender"],
+        ],
+        "campaign_id" => [
+            "required" => true,
+            "integer" => true,
+        ],
+        "campaign_channel" => [
+            "required" => true,
+            "in" => ["email", "social_media", "paid_search"],
+        ],
+        "campaign_effectiveness" => [
+            "required" => true,
+            "numeric" => true,
+        ],
+        "user_behavior_flow" => [
+            "required" => true,
+            "string" => true,
+        ],
+        "custom_dimensions" => [
+            "array" => true,
+        ],
+        "abandoned_cart" => [
+            "required" => true,
+            "boolean" => true,
+        ],
+        "cart_recovery_status" => [
+            "required" => true,
+            "in" => ["sent_email", "called_customer", "automated_sms"],
+        ],
+        "video_id" => [
+            "required" => true,
+            "integer" => true,
+        ],
+        "video_playback_position" => [
+            "required" => true,
+            "integer" => true,
+        ],
+        "video_engagement_rate" => [
+            "required" => true,
+            "numeric" => true,
+        ],
+        "form_id" => [
+            "required" => true,
+            "integer" => true,
+        ],
+        "form_completion_rate" => [
+            "required" => true,
+            "numeric" => true,
+        ],
+        "error_message" => [
+            "required" => true,
+            "string" => true,
+        ],
+        "customer_lifetime_value" => [
+            "required" => true,
+            "numeric" => true,
+        ],
+        "churn_probability" => [
+            "required" => true,
+            "numeric" => true,
+        ],
+        "conversion_rate" => [
+            "required" => true,
+            "numeric" => true,
+        ],
+        "bounce_rate" => [
+            "required" => true,
+            "numeric" => true,
+        ],
+        "average_session_duration" => [
+            "required" => true,
+            "integer" => true,
+        ],
+        "exit_rate" => [
+            "required" => true,
+            "numeric" => true,
+        ],
+        "new_vs_returning_users" => [
+            "array" => true,
+        ],
+        "time_since_last_visit" => [
+            "required" => true,
+            "string" => true,
+        ],
+        "traffic_source" => [
+            "array" => true,
+        ],
+        "clickthrough_rate" => [
+            "array" => true,
+        ],
+        "impressions" => [
+            "array" => true,
+        ],
+        "cost_per_click" => [
+            "array" => true,
+        ],
+        "average_order_value" => [
+            "array" => true,
+        ],
+        "repeat_purchase_rate" => [
+            "array" => true,
+        ],
+        "items_per_order" => [
+            "array" => true,
+        ],
+        "revenue_per_user" => [
+            "array" => true,
+        ],
+        "cost_per_acquisition" => [
+            "array" => true,
+        ],
+        "referral_count" => [
+            "array" => true,
+        ],
+        "social_shares" => [
+            "array" => true,
+        ],
+        "email_open_rate" => [
+            "array" => true,
+        ],
+        "email_click_rate" => [
+            "array" => true,
+        ],
+        "unsubscribe_rate" => [
+            "array" => true,
+        ],
+        "push_notification_opt_in_rate" => [
+            "numeric" => true,
+        ],
+        "push_notification_open_rate" => [
+            "numeric" => true,
+        ],
+        "app_installations" => [
+            "integer" => true,
+        ],
+        "app_uninstallations" => [
+            "integer" => true,
+        ],
+        "app_rating" => [
+            "numeric" => true,
+        ],
+        "page_load_time" => [
+            "numeric" => true,
+        ],
+        "navigation_path" => [
+            "array" => true,
+        ],
+        "conversion_funnel_steps" => [
+            "array" => true,
+        ],
+        "abandonment_rate" => [
+            "numeric" => true,
+        ],
+        "revenue_per_visit" => [
+            "numeric" => true,
+        ],
+        "cart_to_detail_rate" => [
+            "numeric" => true,
+        ],
+        "product_views_per_session" => [
+            "integer" => true,
+        ],
+        "wishlist_additions" => [
+            "integer" => true,
+        ],
+        
+        
+    ];
 
-    // Sanitize and validate the name field
-    $name = filter_var($data['name'], FILTER_SANITIZE_STRING);
-    if (!$name || strlen($name) > 100) {
-        // Return error for invalid name field
-        header('HTTP/1.1 400 Bad Request');
-        header('Content-Type: application/json');
-        echo json_encode(array('error' => 'Invalid name field'));
+    // Validate the data
+    $errors = validateData($requestData, $validationRules);
+
+    // Check if there are validation errors
+    if (!empty($errors)) {
+        returnError('Invalid input data', $errors);
         exit();
     }
 
@@ -69,24 +328,128 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $collection = $db->selectCollection("analytics");
 
     // Insert the document into the collection
-    $result = $collection->insertOne($data);
+    $result = $collection->insertOne($requestData);
 
     // Check if the insertion was successful and send response accordingly
     if ($result->getInsertedCount() == 1) {
-        $response = array("success" => true, "message" => "Document inserted successfully.");
+        returnResponse('Document inserted successfully');
     } else {
-        $response = array("success" => false, "message" => "Failed to insert document. Error: " . $result->getWriteErrors()[0]["errmsg"]);
+        returnError('Failed to insert document', 500);
+    }
+}
+
+// Data is valid, continue processing
+
+/**
+ * Validate the data against the provided rules.
+ *
+ * @param array $data The data to be validated.
+ * @param array $rules The validation rules.
+ * @return array The validation errors, if any.
+ */
+function validateDateFormat($dateString, $format)
+{
+    $dateTime = DateTime::createFromFormat($format, $dateString);
+    return $dateTime && $dateTime->format($format) === $dateString;
+}
+
+function validateData($data, $rules)
+{
+    $errors = [];
+
+    foreach ($rules as $field => $fieldRules) {
+        foreach ($fieldRules as $rule => $value) {
+            switch ($rule) {
+                case 'required':
+                    if ($value && !isset($data[$field])) {
+                        $errors[$field][] = 'The field is required.';
+                    }
+                    break;
+                case 'integer':
+                    if (isset($data[$field]) && !is_numeric($data[$field])) {
+                        $errors[$field][] = 'The field must be an integer.';
+                    }
+                    break;
+                case 'numeric':
+                    if (isset($data[$field]) && !is_numeric($data[$field])) {
+                        $errors[$field][] = 'The field must be numeric.';
+                    }
+                    break;
+                case 'string':
+                    if (isset($data[$field]) && !is_string($data[$field])) {
+                        $errors[$field][] = 'The field must be a string.';
+                    }
+                    break;
+                case 'max_length':
+                    if (isset($data[$field]) && strlen($data[$field]) > $value) {
+                        $errors[$field][] = 'The field length exceeds the maximum allowed length.';
+                    }
+                    break;
+                case 'min':
+                    if (isset($data[$field]) && $data[$field] < $value) {
+                        $errors[$field][] = 'The field value is below the minimum allowed value.';
+                    }
+                    break;
+                case 'in':
+                    if (isset($data[$field]) && !in_array($data[$field], $value)) {
+                        $errors[$field][] = 'The field value is not allowed.';
+                    }
+                    break;
+                case 'date_format':
+                    if (isset($data[$field]) && !validateDateFormat($data[$field], $value)) {
+                        $errors[$field][] = 'The field does not match the required date format.';
+                    }
+                    break;
+                case 'array':
+                    if (isset($data[$field]) && !is_array($data[$field])) {
+                        $errors[$field][] = 'The field must be an array.';
+                    }
+                    break;
+                case 'nullable':
+                    if (isset($data[$field]) && is_null($data[$field])) {
+                        unset($data[$field]);
+                    }
+                    break;
+                // Add validation rules for other data types if needed
+            }
+        }
     }
 
-    // Send the response back to the client
-    echo json_encode($response);
+    return $errors;
 }
-} else {
-    // User does not have full access
-    header('HTTP/1.1 401 Unauthorized');
-    header('Content-Type: application/json');
-    echo json_encode(array('error' => 'Unauthorized access or invalid permission level'));
+
+/**
+ * Return an error response with the specified message and HTTP status code.
+ *
+ * @param string $message The error message.
+ * @param int $statusCode The HTTP status code for the error response.
+ */
+function returnError($message, $statusCode)
+{
+    $response = [
+        'error' => $message,
+    ];
+
+    http_response_code($statusCode);
+
+    echo json_encode($response);
     exit();
 }
 
+/**
+ * Return a success response with the specified message.
+ *
+ * @param string $message The success message.
+ */
+function returnResponse($message)
+{
+    $response = [
+        'message' => $message,
+    ];
+
+    http_response_code(200);
+
+    echo json_encode($response);
+    exit();
+}
 ?>
