@@ -38,6 +38,12 @@ if (!$document_access) {
 $mongo = new MongoDB\Client("mongodb://localhost:27017");
 $collection = $mongo->storage_data->warehouse_and_stocks;
 
+
+// Check if the permission field exists and is equal to 1
+if (isset($document_access['permission']) && $document_access['permission'] === 1 || $document_access['permission'] === 2) {
+  // User has full access
+ 
+  
 // Check if request method is DELETE
 if ($_SERVER['REQUEST_METHOD'] == 'DELETE') {
   
@@ -82,4 +88,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'DELETE') {
   http_response_code(405); // Set response status code to 405 Method Not Allowed
   echo json_encode(array("message" => "Method not allowed."));
 }
+
+} else {
+  // User does not have full access
+  header('HTTP/1.1 401 Unauthorized');
+  header('Content-Type: application/json');
+  echo json_encode(array('error' => 'Unauthorized access'));
+  exit();
+}
+
 ?>
