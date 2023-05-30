@@ -1,5 +1,4 @@
 <?php
-
 // Load the MongoDB library
 require '../../vendor/autoload.php';
 
@@ -35,42 +34,51 @@ if (!$document_access) {
     exit();
 }
 
-
 // Set up MongoDB connection
 $mongo = new MongoDB\Client("mongodb://localhost:27017");
 $collection = $mongo->storage_data->recipe;
 
-// Check if request method is PATCH
-if ($_SERVER['REQUEST_METHOD'] == 'PATCH') {
+
+// Check if the permission field exists and is equal to 1
+if (isset($document_access['permission']) && $document_access['permission'] === 1 || $document_access['permission'] === 2) {
+  // User has full access
+ 
+  
+// Check if request method is DELETE
+if ($_SERVER['REQUEST_METHOD'] == 'DELETE') {
   
   // Get ID from URL parameter
   if(!isset($_GET['id'])){
-    http_response_code(400); // Set response status code to 400 Bad Request
-    echo json_encode(array("message" => "Missing ID parameter."));
+    echo "data did not come";
     exit();
   }
-  
+ 
   $id = $_GET['id'];
   
   // Construct filter
-  $filter = ['_id' => new MongoDB\BSON\ObjectId($id)];
+  $filter = ['_id' => new MongoDB\BSON\ObjectID($id)];
   
-  // Decode PATCH data from request body
-  $data = json_decode(file_get_contents('php://input'), true);
-  
-  // Construct update document from PATCH data
-  $update = ['$set' => $data];
-  
-  // Update document in collection
-  $result = $collection->updateOne($filter, $update);
-  
-  // Check if update was successful
-  if ($result->getModifiedCount() === 1) {
-    // Return success message with updated document
-    $updatedDocument = $collection->findOne($filter);
-    http_response_code(200); // Set response status code to 200 OK
-    echo json_encode($updatedDocument);
+  // Delete document from collection
+  $result = $collection->deleteOne($filter);
+
+
+//   $success_status = $result->getDeletedCount();
+//  echo $nice = json_encode($success_status);
+
+//  if($nice == 1){
+//     echo "ID is deleted";
+//  } else {
+//     echo "not deleted";
+//  }
+// //echo $success_status;
+//    exit();
+  // Check if delete was successful
+  if ($result->getDeletedCount() === 1) {
+
+    // Return success message
+    echo "Deleted Successfully";
   } else {
+    header("HTTP/1.1 204 No Content");
     // Return error message
     http_response_code(404); // Set response status code to 404 Not Found
     echo json_encode(array("message" => "Document not found."));
@@ -79,6 +87,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'PATCH') {
   // Return error message for unsupported method
   http_response_code(405); // Set response status code to 405 Method Not Allowed
   echo json_encode(array("message" => "Method not allowed."));
+}
+
+} else {
+  // User does not have full access
+  header('HTTP/1.1 401 Unauthorized');
+  header('Content-Type: application/json');
+  echo json_encode(array('error' => 'Unauthorized access'));
+  exit();
 }
 
 ?>
