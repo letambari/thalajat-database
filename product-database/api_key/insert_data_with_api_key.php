@@ -10,50 +10,221 @@ header("Access-Control-Allow-Headers: *");
 $mongoClient = new MongoDB\Client("mongodb://localhost:27017");
 
 // Select the database and collection for user access
-$db_access = $mongoClient->selectDatabase("storage_data");
-$collection_access = $db_access->selectCollection("user_access");
+$dbAccess = $mongoClient->selectDatabase("storage_data");
+$collectionAccess = $dbAccess->selectCollection("user_access");
 
 // Check for API key
-if (!isset($_SERVER['HTTP_X_API_KEY'])) {
+$apiKey = $_SERVER['HTTP_X_API_KEY'] ?? null;
+
+if (!$apiKey) {
     // Return error for missing API key
-    header('HTTP/1.1 400 Bad Request');
-    header('Content-Type: application/json');
-    echo json_encode(array('error' => 'Missing API key'));
-    exit();
+    returnError('Missing API key', 400);
 }
 
 // Find the document with the given API key
-$filter = ['api_key' => $_SERVER['HTTP_X_API_KEY']];
-$document_access = $collection_access->findOne($filter);
+$accessFilter = ['api_key' => $apiKey];
+$accessDocument = $collectionAccess->findOne($accessFilter);
 
-if (!$document_access) {
+if (!$accessDocument) {
     // Return error for unauthorized access
-    header('HTTP/1.1 401 Unauthorized');
-    header('Content-Type: application/json');
-    echo json_encode(array('error' => 'Unauthorized access'));
-    exit();
+    returnError('Unauthorized access', 401);
+}
+
+// Check if the permission field exists and is equal to 1 or 2
+$permission = $accessDocument['permission'] ?? null;
+
+if (!in_array($permission, [1, 2])) {
+    // User does not have full access
+    returnError('Unauthorized access or invalid permission level', 401);
 }
 
 // Define the API endpoint to insert data
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Get the data from the request body
-    $data = json_decode(file_get_contents('php://input'), true);
+    $requestData = json_decode(file_get_contents('php://input'), true);
+
+    // Validate the data
+    $validationRules = [
+      'product_id' => ['required' => true, 'integer' => true],
+      'product_name' => ['required' => true, 'string' => true],
+      'product_description' => ['required' => true, 'string' => true],
+      'product_image' => ['required' => true, 'url' => true],
+      'category_id' => ['required' => true, 'integer' => true],
+      'brand_id' => ['required' => true, 'integer' => true],
+      'price' => ['required' => true, 'numeric' => true],
+      'weight_or_volume' => ['required' => true, 'string' => true],
+      'unit_of_measure' => ['required' => true, 'string' => true],
+      'shelf_life' => ['required' => true, 'integer' => true],
+      'barcode' => ['required' => true, 'string' => true],
+      'is_active' => ['required' => true, 'boolean' => true],
+      'creation_date' => ['required' => true, 'date' => true],
+      'last_update' => ['required' => true, 'date' => true],
+      'sku' => ['required' => true, 'string' => true],
+      'nutrition_info' => ['required' => true, 'array' => true],
+      'ingredients' => ['required' => true, 'array' => true],
+      'allergens' => ['required' => true, 'array' => true],
+      'storage_instructions' => ['required' => true, 'string' => true],
+      'expiration_date' => ['required' => true, 'date' => true],
+      'origin' => ['required' => true, 'string' => true],
+      'is_vegan' => ['required' => true, 'boolean' => true],
+      'is_gluten_free' => ['required' => true, 'boolean' => true],
+      'is_organic' => ['required' => true, 'boolean' => true],
+      'manufacturer' => ['required' => true, 'string' => true],
+      'supplier_id' => ['required' => true, 'integer' => true],
+      'wholesale_price' => ['required' => true, 'numeric' => true],
+      'tax_rate' => ['required' => true, 'numeric' => true],
+      'discount' => ['required' => true, 'numeric' => true],
+      'is_halal' => ['required' => true, 'boolean' => true],
+      'is_kosher' => ['required' => true, 'boolean' => true],
+      'package_type' => ['required' => true, 'string' => true],
+      'package_size' => ['required' => true, 'array' => true],
+      'featured' => ['required' => true, 'boolean' => true],
+      'eco_friendly' => ['required' => true, 'boolean' => true],
+      'certifications' => ['required' => true, 'array' => true],
+      'additional_notes' => ['required' => true, 'string' => true],
+      'Product_weight_warehouse_1' => ['required' => true, 'numeric' => true],
+      'Product_weight_warehouse_2' => ['required' => true, 'numeric' => true],
+      'Product_weight_warehouse_3' => ['required' => true, 'numeric' => true],
+  
+        
+    ];
+
+    // Validate the data
+    $errors = validateData($requestData, $validationRules);
+
+    // Check if there are validation errors
+    if (!empty($errors)) {
+        returnError('Invalid input data', $errors);
+        exit();
+    }
 
     // Select the database and collection to insert into
     $db = $mongoClient->selectDatabase("storage_data");
-    $collection = $db->selectCollection("products");
+    $collection = $db->selectCollection("analytics");
 
     // Insert the document into the collection
-    $result = $collection->insertOne($data);
+    $result = $collection->insertOne($requestData);
 
     // Check if the insertion was successful and send response accordingly
     if ($result->getInsertedCount() == 1) {
-        $response = array("success" => true, "message" => "Document inserted successfully.");
+        returnResponse('Document inserted successfully');
     } else {
-        $response = array("success" => false, "message" => "Failed to insert document. Error: " . $result->getWriteErrors()[0]["errmsg"]);
+        returnError('Failed to insert document', 500);
+    }
+}
+
+// Data is valid, continue processing
+
+/**
+ * Validate the data against the provided rules.
+ *
+ * @param array $data The data to be validated.
+ * @param array $rules The validation rules.
+ * @return array The validation errors, if any.
+ */
+function validateDateFormat($dateString, $format)
+{
+    $dateTime = DateTime::createFromFormat($format, $dateString);
+    return $dateTime && $dateTime->format($format) === $dateString;
+}
+
+function validateData($data, $rules)
+{
+    $errors = [];
+
+    foreach ($rules as $field => $fieldRules) {
+        foreach ($fieldRules as $rule => $value) {
+            switch ($rule) {
+                case 'required':
+                    if ($value && !isset($data[$field])) {
+                        $errors[$field][] = 'The field is required.';
+                    }
+                    break;
+                case 'integer':
+                    if (isset($data[$field]) && !is_numeric($data[$field])) {
+                        $errors[$field][] = 'The field must be an integer.';
+                    }
+                    break;
+                case 'numeric':
+                    if (isset($data[$field]) && !is_numeric($data[$field])) {
+                        $errors[$field][] = 'The field must be numeric.';
+                    }
+                    break;
+                case 'string':
+                    if (isset($data[$field]) && !is_string($data[$field])) {
+                        $errors[$field][] = 'The field must be a string.';
+                    }
+                    break;
+                case 'max_length':
+                    if (isset($data[$field]) && strlen($data[$field]) > $value) {
+                        $errors[$field][] = 'The field length exceeds the maximum allowed length.';
+                    }
+                    break;
+                case 'min':
+                    if (isset($data[$field]) && $data[$field] < $value) {
+                        $errors[$field][] = 'The field value is below the minimum allowed value.';
+                    }
+                    break;
+                case 'in':
+                    if (isset($data[$field]) && !in_array($data[$field], $value)) {
+                        $errors[$field][] = 'The field value is not allowed.';
+                    }
+                    break;
+                case 'date_format':
+                    if (isset($data[$field]) && !validateDateFormat($data[$field], $value)) {
+                        $errors[$field][] = 'The field does not match the required date format.';
+                    }
+                    break;
+                case 'array':
+                    if (isset($data[$field]) && !is_array($data[$field])) {
+                        $errors[$field][] = 'The field must be an array.';
+                    }
+                    break;
+                case 'nullable':
+                    if (isset($data[$field]) && is_null($data[$field])) {
+                        unset($data[$field]);
+                    }
+                    break;
+                // Add validation rules for other data types if needed
+            }
+        }
     }
 
-    // Send the response back to the client
+    return $errors;
+}
+
+/**
+ * Return an error response with the specified message and HTTP status code.
+ *
+ * @param string $message The error message.
+ * @param int $statusCode The HTTP status code for the error response.
+ */
+function returnError($message, $statusCode)
+{
+    $response = [
+        'error' => $message,
+    ];
+
+    http_response_code($statusCode);
+
     echo json_encode($response);
+    exit();
+}
+
+/**
+ * Return a success response with the specified message.
+ *
+ * @param string $message The success message.
+ */
+function returnResponse($message)
+{
+    $response = [
+        'message' => $message,
+    ];
+
+    http_response_code(200);
+
+    echo json_encode($response);
+    exit();
 }
 ?>
